@@ -87,12 +87,17 @@ def reset_password(request):
     '''
     Reset password, given the signature and timestamp from the link.
     '''
-    serializer = ResetPasswordSerializer(data=request.data)
+    process_reset_password_data(request.data)
+    return get_ok_response('Reset password successful')
+
+
+def process_reset_password_data(input_data):
+    serializer = ResetPasswordSerializer(data=input_data)
     serializer.is_valid(raise_exception=True)
 
     data = serializer.data.copy()
     password = data.pop('password')
-    signer = ResetPasswordSigner(data, request=request)
+    signer = ResetPasswordSigner(data)
     verify_signer_or_bad_request(signer)
 
     user_class = get_user_model()
@@ -103,5 +108,3 @@ def reset_password(request):
         raise serializers.ValidationError(exc.messages[0])
     user.set_password(password)
     user.save()
-
-    return get_ok_response('Reset password successful')

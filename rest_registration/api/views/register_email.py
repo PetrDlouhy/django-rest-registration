@@ -76,19 +76,22 @@ def verify_email(request):
     '''
     Verify email via signature.
     '''
+    process_verify_email_data(request.data)
+    return get_ok_response('Email verified successfully')
+
+
+def process_verify_email_data(input_data):
     if not registration_settings.REGISTER_EMAIL_VERIFICATION_ENABLED:
         raise Http404()
     user_class = get_user_model()
-    serializer = VerifyEmailSerializer(data=request.data)
+    serializer = VerifyEmailSerializer(data=input_data)
     serializer.is_valid(raise_exception=True)
 
     data = serializer.data
-    signer = RegisterEmailSigner(data, request=request)
+    signer = RegisterEmailSigner(data)
     verify_signer_or_bad_request(signer)
 
     email_field = get_user_setting('EMAIL_FIELD')
     user = get_object_or_404(user_class.objects.all(), pk=data['user_id'])
     setattr(user, email_field, data['email'])
     user.save()
-
-    return get_ok_response('Email verified successfully')
